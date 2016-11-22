@@ -51,7 +51,7 @@ public class sim_ds {
 		while(true) {
             Retire(myROB);
             
-            Fetch(myROB);
+            Fetch(myROB, br);
             if(done) break;
 		}
 		
@@ -73,14 +73,16 @@ public class sim_ds {
 		}
 	}
 	
-	public void Fetch(ReOrderBuffer robTable, BufferedReader br){
+	public void Fetch(ReOrderBuffer robTable, BufferedReader br) throws IOException{
 		for(int i=decodeReg.size(); i<theWidth; i++){
 			if(decodeReg.size() < theWidth){
 				String line = br.readLine();
 				if(line != null){
 					SetData(line);
+					
+					Instruction instr = new Instruction(thePC, opType, regDest, regSrc1, regSrc2, Pipeline.FETCH);
 					instructionsCount++;
-					decodeReg.put(thePC, );
+					decodeReg.put(thePC, instr);
 				}
 			}
 		}
