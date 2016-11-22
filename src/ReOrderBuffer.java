@@ -3,6 +3,7 @@ public class ReOrderBuffer {
 
 	public AROB[] rob;
 	public int head, tail;
+	public int size;
 	
 	public ReOrderBuffer(int rob_size) {
 		AROB[] temprob = new AROB[rob_size];
@@ -12,6 +13,7 @@ public class ReOrderBuffer {
 		rob = temprob;
 		head = 0;
 		tail = 0;
+		size = rob_size;
 	}
 	
 	public void AddRob(int regDest, int addr){
@@ -28,5 +30,23 @@ public class ReOrderBuffer {
 			doneRob = rob[head++];
 		}
 		return doneRob;
+	}
+	
+	public void IncrementHead(){
+		if(head < size){
+			head++;
+		}
+		else{
+			head = 0;
+		}
+	}
+	
+	public void IncrementTail(){
+		if(tail < size){
+			size++;
+		}
+		else{
+			tail = 0;
+		}
 	}
 }

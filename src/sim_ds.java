@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class sim_ds {
@@ -10,7 +11,7 @@ public class sim_ds {
 	String tracefile;
 	
 	//simulator input
-	int thePC; 
+	Long thePC; 
 	int opType, regDest, regSrc1, regSrc2;
 	
 //	output
@@ -22,16 +23,20 @@ public class sim_ds {
 // 	TODO:	Note that you don't need to print out 4 and 5 by default when <CACHE_SIZE> and <P> are both 0.
 	int instructionsCount = 0, cyclesCount = 0, retiredIPC = 0, cach_hits = 0, prefetch_hits = 0;
 	
+	int sequence = 0;
+	FileReader fileReader;
+	BufferedReader br;
+	
+	
 	//pipeline registers
-	HashMap<Integer, Instruction> fetchReg 		= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> decodeReg 	= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> renameReg 	= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> regReadReg 	= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> dispatchReg 	= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> issueReg 		= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> executeReg 	= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> writebackReg 	= new HashMap<Integer, Instruction>();
-	HashMap<Integer, Instruction> retireReg 	= new HashMap<Integer, Instruction>();
+	ArrayList<Instruction> decodeReg 	= new ArrayList<Instruction>();
+	ArrayList<Instruction> renameReg 	= new ArrayList<Instruction>();
+	ArrayList<Instruction> regReadReg 	= new ArrayList<Instruction>();
+	ArrayList<Instruction> dispatchReg 	= new ArrayList<Instruction>();
+	ArrayList<Instruction> issueReg 	= new ArrayList<Instruction>();
+	ArrayList<Instruction> executeReg 	= new ArrayList<Instruction>();
+	ArrayList<Instruction> writebackReg = new ArrayList<Instruction>();
+	ArrayList<Instruction> retireReg 	= new ArrayList<Instruction>();
 	
 	
 	int regCount = 67;
@@ -49,10 +54,11 @@ public class sim_ds {
 		FileReader fileReader = new FileReader(tracefile);
 		BufferedReader br = new BufferedReader(fileReader);
 		while(true) {
-            Retire(myROB);
-            
+            //Retire(myROB);
+            Decode(myROB);
             Fetch(myROB, br);
             if(done) break;
+            sequence++;
 		}
 		
 		br.close();
@@ -67,22 +73,46 @@ public class sim_ds {
 			if(retireReg.size() < theWidth){
 				if(robTable.rob[robTable.head].rdy == 1){
 					retireReg.remove(robTable.rob[robTable.head].PC);
-					robTable.head++;
+					robTable.IncrementHead();
 				}
 			}
 		}
 	}
 	
 	public void Fetch(ReOrderBuffer robTable, BufferedReader br) throws IOException{
+//		int loopsize = theWidth - decodeReg.size();
 		for(int i=decodeReg.size(); i<theWidth; i++){
 			if(decodeReg.size() < theWidth){
 				String line = br.readLine();
 				if(line != null){
 					SetData(line);
 					
-					Instruction instr = new Instruction(thePC, opType, regDest, regSrc1, regSrc2, Pipeline.FETCH);
+					Instruction instr = new Instruction(thePC, instructionsCount, sequence, opType, regDest, regSrc1, regSrc2, Pipeline.FETCH);
 					instructionsCount++;
-					decodeReg.put(thePC, instr);
+					decodeReg.add(instr);
+				}
+			}
+		}
+	}
+	
+	public void Decode(ReOrderBuffer robTable){
+		int loopsize = theWidth - renameReg.size();
+		if(decodeReg.size() > 0){
+			for(int i=0; i<loopsize; i++){
+				if(renameReg.size() < theWidth){
+					renameReg.add(decodeReg.get(0).ChangeStage(Pipeline.RENAME, sequence));
+					decodeReg.remove(0);
+				}
+			}
+		}
+	}
+	
+	public void Rename(ReOrderBuffer robTable){
+		int loopsize = theWidth - regReadReg.size();
+		if(renameReg.size() > 0){
+			for(int i=0; i<loopsize; i++){
+				if(regReadReg.size() < theWidth){
+					
 				}
 			}
 		}
@@ -105,10 +135,12 @@ public class sim_ds {
 	private void SetData(String line){
 		String[] temp = line.split(" ");
 		
-		thePC = Integer.parseInt(temp[0]);
+		thePC = Long.parseLong(temp[0], 16);
 		opType = Integer.parseInt(temp[1]);
 		regDest = Integer.parseInt(temp[2]);
 		regSrc1 = Integer.parseInt(temp[3]);
 		regSrc2 = Integer.parseInt(temp[4]);
+		
+		System.out.println("pc: " + thePC);
 	}
 }
