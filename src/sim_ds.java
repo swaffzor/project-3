@@ -47,7 +47,6 @@ public class sim_ds {
 		GetParameters(args);
 		
 		ReOrderBuffer myROB = new ReOrderBuffer(rob_size);
-		ArchRegFile[] myARF = new ArchRegFile[regCount];
 		RenameMapTab[] myRMT = new RenameMapTab[regCount];
 		IssueQueue[] myIQ = new IssueQueue[iq_size];
 		
@@ -107,12 +106,16 @@ public class sim_ds {
 		}
 	}
 	
-	public void Rename(ReOrderBuffer robTable){
+	public void Rename(ReOrderBuffer robTable, RenameMapTab[] rmt){
 		int loopsize = theWidth - regReadReg.size();
 		if(renameReg.size() > 0){
 			for(int i=0; i<loopsize; i++){
 				if(regReadReg.size() < theWidth){
-					
+					int robEntriesNeeded = 0;
+					if(rmt[renameReg.get(0).dest].ROBtag != 0){
+						
+					}
+					if(renameReg.get(0).dest != -1) robEntriesNeeded++;
 				}
 			}
 		}
