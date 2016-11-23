@@ -2,7 +2,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class sim_ds {
 
@@ -26,7 +25,10 @@ public class sim_ds {
 	int sequence = 0;
 	FileReader fileReader;
 	BufferedReader br;
-	
+	boolean traceDone = false;
+	ReOrderBuffer robTable;
+	RenameMapTab[] rmt;
+	IssueQueue[] myIQ;
 	
 	//pipeline registers
 	ArrayList<Instruction> decodeReg 	= new ArrayList<Instruction>();
@@ -46,16 +48,20 @@ public class sim_ds {
 		System.out.println("hello worlds");
 		GetParameters(args);
 		
-		ReOrderBuffer myROB = new ReOrderBuffer(rob_size);
-		RenameMapTab[] myRMT = new RenameMapTab[regCount];
-		IssueQueue[] myIQ = new IssueQueue[iq_size];
+		robTable = new ReOrderBuffer(rob_size);
+		rmt = new RenameMapTab[regCount];
+		for(int i=0; i<regCount; i++){
+			rmt[i] = new RenameMapTab();
+		}
+		myIQ = new IssueQueue[iq_size];
 		
 		FileReader fileReader = new FileReader(tracefile);
-		BufferedReader br = new BufferedReader(fileReader);
+		br = new BufferedReader(fileReader);
 		while(true) {
             //Retire(myROB);
-            Decode(myROB);
-            Fetch(myROB, br);
+			Rename();
+            Decode();
+            Fetch();
             if(done) break;
             sequence++;
 		}
@@ -67,10 +73,11 @@ public class sim_ds {
 		new sim_ds(args);
 	}
 	
-	public void Retire(ReOrderBuffer robTable){
+	public void Retire(){
 		for(int i=0; i<theWidth; i++){
 			if(retireReg.size() < theWidth){
 				if(robTable.rob[robTable.head].rdy == 1){
+					//TODO: print instruction
 					retireReg.remove(robTable.rob[robTable.head].PC);
 					robTable.IncrementHead();
 				}
@@ -78,7 +85,7 @@ public class sim_ds {
 		}
 	}
 	
-	public void Fetch(ReOrderBuffer robTable, BufferedReader br) throws IOException{
+	public void Fetch() throws IOException{
 //		int loopsize = theWidth - decodeReg.size();
 		for(int i=decodeReg.size(); i<theWidth; i++){
 			if(decodeReg.size() < theWidth){
@@ -90,11 +97,12 @@ public class sim_ds {
 					instructionsCount++;
 					decodeReg.add(instr);
 				}
+				else traceDone = true;
 			}
 		}
 	}
 	
-	public void Decode(ReOrderBuffer robTable){
+	public void Decode(){
 		int loopsize = theWidth - renameReg.size();
 		if(decodeReg.size() > 0){
 			for(int i=0; i<loopsize; i++){
@@ -106,19 +114,80 @@ public class sim_ds {
 		}
 	}
 	
-	public void Rename(ReOrderBuffer robTable, RenameMapTab[] rmt){
+	public void Rename(){
 		int loopsize = theWidth - regReadReg.size();
 		if(renameReg.size() > 0){
 			for(int i=0; i<loopsize; i++){
 				if(regReadReg.size() < theWidth){
-					int robEntriesNeeded = 0;
-					if(rmt[renameReg.get(0).dest].ROBtag != 0){
+					int robEntriesNeeded = CalcRenameRobSize(renameReg.get(0));
+					if(robEntriesNeeded < robTable.spaceAvailable){
+						//process
+						RenameThisReg(false, true, false);	//rename src1
+						RenameThisReg(false, false, true);	//rename src2
+						RenameThisReg(true, false, false);	//rename dest
 						
+						//advance to RR
+						regReadReg.add(renameReg.get(0).ChangeStage(Pipeline.REGREAD, sequence));
+						renameReg.remove(0);
 					}
-					if(renameReg.get(0).dest != -1) robEntriesNeeded++;
 				}
 			}
 		}
+	}
+	
+	public int RenameThisReg(boolean dst, boolean s1, boolean s2){
+		int robIndex = -1;
+		int rmtIndex = -1;
+		if(dst){
+			rmtIndex = renameReg.get(0).dest;
+			if(rmtIndex != -1){
+				renameReg.get(0).dest = robTable.tail;
+			}
+		}
+		else if(s1){
+			rmtIndex = renameReg.get(0).src1;
+			if(rmtIndex != -1){
+				renameReg.get(0).src1 = robTable.tail;
+			}
+		}
+		else if(s2){
+			rmtIndex = renameReg.get(0).src2;
+			if(rmtIndex != -1){
+				renameReg.get(0).src2 = robTable.tail;
+			}
+		}
+		if(rmtIndex != -1){
+			robTable.rob[robTable.tail].PC = thePC;
+			robTable.rob[robTable.tail].dst = rmtIndex;
+			rmt[rmtIndex].valid = 1;
+			rmt[rmtIndex].ROBtag = robTable.tail;
+			
+			robTable.IncrementTail();
+		}
+		
+		return robIndex;
+	}
+	
+	public int CalcRenameRobSize(Instruction instr){
+		int count = 0;
+		int index = instr.dest; 
+		if(index != -1){
+			count++;
+		}
+		index = instr.src1;
+		if(index != -1){
+			if(rmt[index].valid == 1){
+				count++;
+			}
+		}
+		index = instr.src2;
+		if(index != -1){
+			if(rmt[index].valid == 1){
+				count++;
+			}
+		}
+		
+		return count;
 	}
 	
 	private void GetParameters(String[] args){

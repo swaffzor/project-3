@@ -6,7 +6,7 @@ public class AROB {
 	int rdy;
 	int exc;
 	int mis;
-	int PC;
+	long PC;
 	
 	public AROB() {
 		value = "na";
