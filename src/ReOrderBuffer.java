@@ -47,7 +47,7 @@ public class ReOrderBuffer {
 	public void IncrementTail(){
 		if(spaceAvailable > 0){
 			if(tail < size){
-				size++;
+				tail++;
 			}
 			else{
 				tail = 0;

@@ -59,6 +59,7 @@ public class sim_ds {
 		br = new BufferedReader(fileReader);
 		while(true) {
             //Retire(myROB);
+			RegRead();
 			Rename();
             Decode();
             Fetch();
@@ -133,6 +134,38 @@ public class sim_ds {
 				}
 			}
 		}
+	}
+	
+	public void RegRead(){
+		if(!regReadReg.isEmpty()){
+			int loopsize = theWidth - dispatchReg.size();
+			for(int i=0; i<loopsize; i++){
+				if(dispatchReg.size() < theWidth){
+					//process src1
+					boolean src1ready = false;
+					int rmtIdx = regReadReg.get(0).src1;
+					int robIdx = rmt[rmtIdx].ROBtag;
+					if(robTable.rob[robIdx].rdy == 1){
+						src1ready = true;
+					}
+					//process src1
+					boolean src2ready = false;
+					rmtIdx = regReadReg.get(0).src2;
+					robIdx = rmt[rmtIdx].ROBtag;
+					if(robTable.rob[robIdx].rdy == 1){
+						src2ready = true;
+					}
+					
+					//advance
+					dispatchReg.add(regReadReg.get(0).ChangeStage(Pipeline.DISPATCH, sequence, src1ready, src2ready));
+					dispatchReg.remove(0);
+				}
+			}
+		}
+	}
+	
+	public void Dispatch(){
+		
 	}
 	
 	public int RenameThisReg(boolean dst, boolean s1, boolean s2){

@@ -1,7 +1,7 @@
 
 public class AROB {
 
-	String value;
+	int value;
 	int dst;
 	int rdy;
 	int exc;
@@ -9,7 +9,7 @@ public class AROB {
 	long PC;
 	
 	public AROB() {
-		value = "na";
+		value = 0;
 		dst = 0;
 		rdy = 0;
 		exc = 0;
@@ -17,7 +17,7 @@ public class AROB {
 		PC  = 0;
 	}
 	
-	public void setValue(String val){
+	public void setValue(int val){
 		this.value = val;
 	}
 
