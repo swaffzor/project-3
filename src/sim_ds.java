@@ -59,6 +59,7 @@ public class sim_ds {
 		br = new BufferedReader(fileReader);
 		while(true) {
             //Retire(myROB);
+			Dispatch();
 			RegRead();
 			Rename();
             Decode();
@@ -158,14 +159,37 @@ public class sim_ds {
 					
 					//advance
 					dispatchReg.add(regReadReg.get(0).ChangeStage(Pipeline.DISPATCH, sequence, src1ready, src2ready));
-					dispatchReg.remove(0);
+					regReadReg.remove(0);
 				}
 			}
 		}
 	}
 	
 	public void Dispatch(){
-		
+		if(!dispatchReg.isEmpty()){
+			int loopsize = iq_size - issueReg.size();
+			for(int i=0; i<loopsize; i++){
+				if((iq_size - issueReg.size()) >= dispatchReg.size()){
+					AddToIssueQueue();
+					issueReg.add(dispatchReg.get(0).ChangeStage(Pipeline.ISSUE, sequence));
+					dispatchReg.remove(0);
+				}
+			}
+		}
+	}
+	
+	public void AddToIssueQueue(){
+		for(int i=0; i<iq_size; i++){
+			if(myIQ[i].valid != 1){
+				myIQ[i].dstTag = dispatchReg.get(0).dest;
+				myIQ[i].src1Ready = dispatchReg.get(0).src1rdy;
+				myIQ[i].src1Tag = dispatchReg.get(0).src1;
+				myIQ[i].src2Ready = dispatchReg.get(0).src2rdy;
+				myIQ[i].src2Tag = dispatchReg.get(0).src2;
+				myIQ[i].valid = 1;
+				break;
+			}
+		}
 	}
 	
 	public int RenameThisReg(boolean dst, boolean s1, boolean s2){
