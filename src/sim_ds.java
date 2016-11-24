@@ -179,22 +179,110 @@ public class sim_ds {
 	}
 	
 	public void Issue(){
-		for(int i=0; i<theWidth; i++){
-			if(executeReg.size() < theWidth*5){
-				int latency = -1;
-				if(issueReg.get(0).opType == 0){
-					latency = 1;
+		if(!issueReg.isEmpty()){
+			for(int i=0; i<theWidth; i++){
+				if(executeReg.size() < theWidth*5){
+					//check if instructions are ready
+					int idx = CheckIQ();
+					if(idx != -1){
+						int latency = -1;
+						if(issueReg.get(idx).opType == 0){
+							latency = 1;
+						}
+						else if(issueReg.get(idx).opType == 1){
+							latency = 2;
+						}
+						else if(issueReg.get(idx).opType == 2){
+							latency = 5;
+						}
+						executeReg.add(issueReg.get(idx).ChangeStage(Pipeline.EXECUTE, sequence, latency));
+						issueReg.remove(idx);
+					}
 				}
-				else if(issueReg.get(0).opType == 1){
-					latency = 2;
-				}
-				else if(issueReg.get(0).opType == 2){
-					latency = 5;
-				}
-				executeReg.add(issueReg.get(0).ChangeStage(Pipeline.EXECUTE, sequence, latency));
-				issueReg.remove(0);
 			}
 		}
+	}
+	
+	public void Execute(){
+		for(int i=0; i<executeReg.size(); i++){
+			if(executeReg.get(i).timer == 0){
+				//finished
+				//wakeup dependent instructions
+				WakeUp(executeReg.get(i).dest);
+				//advnace to wb
+				writebackReg.add(executeReg.get(i).ChangeStage(Pipeline.WRITEBACK, sequence));
+				//remove from executeReg
+				executeReg.remove(i);
+			}
+			else{
+				//decrement timer
+				executeReg.get(i).timer--;
+			}
+		}
+	}
+	
+	public void WakeUp(int robIdx){
+		for(int i=0; i<iq_size; i++){
+			if(myIQ[i].src1Tag == robIdx){
+				myIQ[i].src1Ready = true;
+			}
+			if(myIQ[i].src2Tag == robIdx){
+				myIQ[i].src2Ready = true;
+			}
+		}
+		for(int i=0; i<issueReg.size(); i++){
+			if(issueReg.get(i).src1 == robIdx){
+				issueReg.get(i).src1rdy = true;
+			}
+			if(issueReg.get(i).src2 == robIdx){
+				issueReg.get(i).src2rdy = true;
+			}
+		}
+		for(int i=0; i<dispatchReg.size(); i++){
+			if(dispatchReg.get(i).src1 == robIdx){
+				dispatchReg.get(i).src1rdy = true;
+			}
+			if(dispatchReg.get(i).src2 == robIdx){
+				dispatchReg.get(i).src2rdy = true;
+			}
+		}
+		for(int i=0; i<regReadReg.size(); i++){
+			if(regReadReg.get(i).src1 == robIdx){
+				regReadReg.get(i).src1rdy = true;
+			}
+			if(regReadReg.get(i).src2 == robIdx){
+				regReadReg.get(i).src2rdy = true;
+			}
+		}
+	}
+	
+	public int CheckIQ(){
+		int iqIdx = -1;
+		int[] ready = new int[iq_size];
+		int rdyIdx = 0;
+		int lowest = 65535;
+		
+		//create array of ready instructions
+		for(int i=0; i<iq_size; i++){
+			if(myIQ[i].src1Ready && myIQ[i].src2Ready){
+				ready[rdyIdx++] = myIQ[i].instNum;
+			}
+		}
+		//find the oldest ready instruction
+		for(int j=0; j<rdyIdx; j++){
+			if(ready[j] < lowest){
+				lowest = ready[j];
+			}
+		}
+		//get the index of the lowest ready instruction from the register
+		for(int i=0; i<issueReg.size(); i++){
+			if(lowest == issueReg.get(i).instNum){
+				iqIdx = i;
+				break;
+			}
+		}
+		
+		return iqIdx;
 	}
 	
 	public void AddToIssueQueue(){
@@ -205,6 +293,7 @@ public class sim_ds {
 				myIQ[i].src1Tag = dispatchReg.get(0).src1;
 				myIQ[i].src2Ready = dispatchReg.get(0).src2rdy;
 				myIQ[i].src2Tag = dispatchReg.get(0).src2;
+				myIQ[i].instNum = dispatchReg.get(0).instNum;
 				myIQ[i].valid = 1;
 				break;
 			}

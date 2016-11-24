@@ -7,6 +7,7 @@ public class IssueQueue {
 	boolean src2Ready;
 	int src1Tag;
 	int src2Tag;
+	int instNum;
 	
 	public IssueQueue() {
 		valid = 0;
@@ -15,5 +16,6 @@ public class IssueQueue {
 		src2Ready = false;
 		src1Tag = 0;
 		src2Tag = 0;
+		instNum = 0;
 	}
 }
