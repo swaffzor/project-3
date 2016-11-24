@@ -6,7 +6,7 @@ public class AROB {
 	int rdy;
 	int exc;
 	int mis;
-	long PC;
+	int instrNum;
 	
 	public AROB() {
 		value = 0;
@@ -14,7 +14,7 @@ public class AROB {
 		rdy = 0;
 		exc = 0;
 		mis = 0;
-		PC  = 0;
+		instrNum  = 0;
 	}
 	
 	public void setValue(int val){

@@ -21,7 +21,7 @@ public class ReOrderBuffer {
 	public void AddRob(int regDest, int addr){
 		if(tail < rob.length){
 			rob[tail].dst = regDest;
-			rob[tail].PC = addr;
+			rob[tail].instrNum = addr;
 			tail++;
 		}
 	}

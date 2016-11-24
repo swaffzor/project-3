@@ -79,9 +79,11 @@ public class sim_ds {
 		for(int i=0; i<theWidth; i++){
 			if(retireReg.size() < theWidth){
 				if(robTable.rob[robTable.head].rdy == 1){
-					//TODO: print instruction
-					retireReg.remove(robTable.rob[robTable.head].PC);
+					int instNum = robTable.rob[robTable.head].instrNum;
+					retireReg.remove(instNum);
 					robTable.IncrementHead();
+					//TODO: print instruction
+					
 				}
 			}
 		}
@@ -221,6 +223,18 @@ public class sim_ds {
 		}
 	}
 	
+	public void WriteBack(){
+		for(int i=0; i<theWidth*5; i++){
+			if(!writebackReg.isEmpty()){
+				int robIdx = writebackReg.get(0).dest;
+				robTable.rob[robIdx].rdy = 1;
+				
+				retireReg.add(writebackReg.get(0).ChangeStage(Pipeline.RETIRE, sequence));
+				writebackReg.remove(0);
+			}
+		}
+	}
+	
 	public void WakeUp(int robIdx){
 		for(int i=0; i<iq_size; i++){
 			if(myIQ[i].src1Tag == robIdx){
@@ -322,7 +336,7 @@ public class sim_ds {
 			}
 		}
 		if(rmtIndex != -1){
-			robTable.rob[robTable.tail].PC = thePC;
+			robTable.rob[robTable.tail].instrNum = renameReg.get(0).instNum;
 			robTable.rob[robTable.tail].dst = rmtIndex;
 			rmt[rmtIndex].valid = 1;
 			rmt[rmtIndex].ROBtag = robTable.tail;
