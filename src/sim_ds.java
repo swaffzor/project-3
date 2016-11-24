@@ -178,6 +178,25 @@ public class sim_ds {
 		}
 	}
 	
+	public void Issue(){
+		for(int i=0; i<theWidth; i++){
+			if(executeReg.size() < theWidth*5){
+				int latency = -1;
+				if(issueReg.get(0).opType == 0){
+					latency = 1;
+				}
+				else if(issueReg.get(0).opType == 1){
+					latency = 2;
+				}
+				else if(issueReg.get(0).opType == 2){
+					latency = 5;
+				}
+				executeReg.add(issueReg.get(0).ChangeStage(Pipeline.EXECUTE, sequence, latency));
+				issueReg.remove(0);
+			}
+		}
+	}
+	
 	public void AddToIssueQueue(){
 		for(int i=0; i<iq_size; i++){
 			if(myIQ[i].valid != 1){

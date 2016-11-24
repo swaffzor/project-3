@@ -11,6 +11,7 @@ public class Instruction {
 	public int stage;
 	public int instNum;
 	public int begin[] = new int[9];
+	public int timer;
 	
 	public Instruction(long pc, int instnum, int cycle, int optype, int d, int s1, int s2, int stage) {
 		this.PC = pc;
@@ -36,6 +37,13 @@ public class Instruction {
 		this.stage = destStage;
 		src1rdy = s1r;
 		src2rdy = s2r;
+		return this;
+	}
+	
+	public Instruction ChangeStage(int destStage, int sequence, int time){
+		begin[stage] = sequence;
+		this.stage = destStage;
+		timer = time;
 		return this;
 	}
 
