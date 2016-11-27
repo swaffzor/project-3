@@ -18,13 +18,13 @@ public class ReOrderBuffer {
 		spaceAvailable = rob_size;
 	}
 	
-	public void AddRob(int regDest, int addr){
-		if(tail < rob.length){
-			rob[tail].dst = regDest;
-			rob[tail].instrNum = addr;
-			tail++;
-		}
-	}
+//	public void AddRob(int regDest, int addr){
+//		if(tail < rob.length){
+//			rob[tail].dst = regDest;
+//			rob[tail].instrNum = addr;
+//			tail++;
+//		}
+//	}
 
 	public AROB Retire(){
 		AROB doneRob = null;
@@ -35,7 +35,7 @@ public class ReOrderBuffer {
 	}
 	
 	public void IncrementHead(){
-		if(head < size){
+		if(head+1 < size){
 			head++;
 		}
 		else{
@@ -46,7 +46,7 @@ public class ReOrderBuffer {
 	
 	public void IncrementTail(){
 		if(spaceAvailable > 0){
-			if(tail < size){
+			if(tail+1 < size){
 				tail++;
 			}
 			else{

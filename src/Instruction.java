@@ -27,22 +27,22 @@ public class Instruction {
 	}
 	
 	public Instruction ChangeStage(int destStage, int sequence){
-		begin[stage] = sequence;
 		this.stage = destStage;
+		begin[stage] = sequence;
 		return this;
 	}
 
 	public Instruction ChangeStage(int destStage, int sequence, boolean s1r, boolean s2r){
-		begin[stage] = sequence;
 		this.stage = destStage;
+		begin[stage] = sequence;
 		src1rdy = s1r;
 		src2rdy = s2r;
 		return this;
 	}
 	
 	public Instruction ChangeStage(int destStage, int sequence, int time){
-		begin[stage] = sequence;
 		this.stage = destStage;
+		begin[stage] = sequence;
 		timer = time;
 		return this;
 	}

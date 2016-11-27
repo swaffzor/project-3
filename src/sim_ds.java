@@ -86,8 +86,10 @@ public class sim_ds {
 			if(!retireReg.isEmpty()){
 				if(robTable.rob[robTable.head].rdy == 1){
 					int instNum = robTable.rob[robTable.head].instrNum;
+					int tag = robTable.rob[robTable.head].dst;
 					// print instruction
 					int rIdx = GetDoneIndex(instNum);
+					retireReg.get(rIdx).dest = tag;
 					PrintInst(retireReg.get(rIdx));
 					retireReg.remove(rIdx);
 					robTable.IncrementHead();
@@ -106,7 +108,7 @@ public class sim_ds {
 					
 					Instruction instr = new Instruction(thePC, instructionsCount, sequence, opType, regDest, regSrc1, regSrc2, Pipeline.FETCH);
 					instructionsCount++;
-					decodeReg.add(instr);
+					decodeReg.add(instr.ChangeStage(Pipeline.DECODE, sequence+1));
 				}
 				else traceDone = true;
 			}
@@ -118,7 +120,7 @@ public class sim_ds {
 		if(decodeReg.size() > 0){
 			for(int i=0; i<loopsize; i++){
 				if(renameReg.size() < theWidth){
-					renameReg.add(decodeReg.get(0).ChangeStage(Pipeline.RENAME, sequence));
+					renameReg.add(decodeReg.get(0).ChangeStage(Pipeline.RENAME, sequence+1));
 					decodeReg.remove(0);
 				}
 			}
@@ -271,14 +273,14 @@ public class sim_ds {
 		if(writebackReg.isEmpty()) doneCount++;
 		if(retireReg.isEmpty()) doneCount++;
 		
-		System.out.print("DE: "+decodeReg.size());		
-		System.out.print(" RE: "+renameReg.size());	
-		System.out.print(" RR: "+regReadReg.size());	
-		System.out.print(" DI: "+dispatchReg.size());	
-		System.out.print(" IS: "+issueReg.size());	
-		System.out.print(" EX: "+executeReg.size());	
-		System.out.print(" WB: "+writebackReg.size());	
-		System.out.println(" RT: "+retireReg.size());
+//		System.out.print("DE: "+decodeReg.size());		
+//		System.out.print(" RE: "+renameReg.size());	
+//		System.out.print(" RR: "+regReadReg.size());	
+//		System.out.print(" DI: "+dispatchReg.size());	
+//		System.out.print(" IS: "+issueReg.size());	
+//		System.out.print(" EX: "+executeReg.size());	
+//		System.out.print(" WB: "+writebackReg.size());	
+//		System.out.println(" RT: "+retireReg.size());
 		
 		if(doneCount == 8) return true;
 		else return false;
@@ -286,7 +288,7 @@ public class sim_ds {
 	
 	public void PrintInst(Instruction i){
 		System.out.print(i.instNum + " fu{" + i.opType + "} ");
-		System.out.print("src{" + i.src1 +"," + i.src2 +"} dest{" + i.dest + "} ");
+		System.out.print("src{" + i.src1 +"," + i.src2 +"} dst{" + i.dest + "} ");
 		System.out.print("FE{"+ i.begin[Pipeline.FETCH] + "," + (i.begin[Pipeline.FETCH+1] - i.begin[Pipeline.FETCH]) + "} ");
 		System.out.print("DE{"+ i.begin[Pipeline.DECODE] + "," + (i.begin[Pipeline.DECODE+1] - i.begin[Pipeline.DECODE]) + "} ");
 		System.out.print("RN{"+ i.begin[Pipeline.RENAME] + "," + (i.begin[Pipeline.RENAME+1] - i.begin[Pipeline.RENAME]) + "} ");
@@ -352,7 +354,7 @@ public class sim_ds {
 		
 		//create array of ready instructions
 		for(int i=0; i<iq_size; i++){
-			if(myIQ[i].src1Ready && myIQ[i].src2Ready){
+			if(myIQ[i].src1Ready && myIQ[i].src2Ready && myIQ[i].valid == 1){
 				ready[rdyIdx++] = myIQ[i].instNum;
 			}
 		}
