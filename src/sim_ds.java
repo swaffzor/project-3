@@ -87,8 +87,9 @@ public class sim_ds {
 				if(robTable.rob[robTable.head].rdy == 1){
 					int instNum = robTable.rob[robTable.head].instrNum;
 					// print instruction
-					PrintInst(retireReg.get(instNum));
-					retireReg.remove(instNum);
+					int rIdx = GetDoneIndex(instNum);
+					PrintInst(retireReg.get(rIdx));
+					retireReg.remove(rIdx);
 					robTable.IncrementHead();
 				}
 			}
@@ -132,9 +133,9 @@ public class sim_ds {
 					int robEntriesNeeded = CalcRenameRobSize(renameReg.get(0));
 					if(robEntriesNeeded < robTable.spaceAvailable){
 						//process
+						RenameThisReg(true, false, false);	//rename dest
 						RenameThisReg(false, true, false);	//rename src1
 						RenameThisReg(false, false, true);	//rename src2
-						RenameThisReg(true, false, false);	//rename dest
 						
 						//advance to RR
 						regReadReg.add(renameReg.get(0).ChangeStage(Pipeline.REGREAD, sequence));
@@ -248,7 +249,7 @@ public class sim_ds {
 		for(int i=0; i<theWidth*5; i++){
 			if(!writebackReg.isEmpty()){
 				int robIdx = writebackReg.get(0).dest;
-				if(robIdx > 0){
+				if(robIdx > -1){
 					WakeUp(robIdx);
 					robTable.rob[robIdx].rdy = 1;
 				}
@@ -295,6 +296,17 @@ public class sim_ds {
 		System.out.print("EX{"+ i.begin[Pipeline.EXECUTE] + "," + (i.begin[Pipeline.EXECUTE+1] - i.begin[Pipeline.EXECUTE]) + "} ");
 		System.out.print("WB{"+ i.begin[Pipeline.WRITEBACK] + "," + (i.begin[Pipeline.WRITEBACK+1] - i.begin[Pipeline.WRITEBACK]) + "} ");
 		System.out.println("RT{"+ i.begin[Pipeline.RETIRE] + "," + (sequence - i.begin[Pipeline.RETIRE]) + "} ");
+	}
+	
+	public int GetDoneIndex(int instrNum){
+		int idx = -1;
+		for(int i=0; i<retireReg.size(); i++){
+			if(retireReg.get(i).instNum == instrNum){
+				idx = i;
+				break;
+			}
+		}
+		return idx;
 	}
 	
 	public void WakeUp(int robIdx){
@@ -354,11 +366,22 @@ public class sim_ds {
 		for(int i=0; i<issueReg.size(); i++){
 			if(lowest == issueReg.get(i).instNum){
 				iqIdx = i;
+				//remove from issue queue
+				RemoveFromIssueQueue(lowest);
 				break;
 			}
 		}
 		
 		return iqIdx;
+	}
+	
+	public void RemoveFromIssueQueue(int instNum){
+		for(int i=0; i< iq_size; i++){
+			if(myIQ[i].instNum == instNum){
+				myIQ[i].valid = 0;
+				break;
+			}
+		}
 	}
 	
 	public void AddToIssueQueue(){
@@ -382,9 +405,8 @@ public class sim_ds {
 		boolean valid = false;
 		if(dst){
 			rmtIndex = renameReg.get(0).dest;
-			if(rmtIndex != -1){
-				renameReg.get(0).dest = robTable.tail;
-			}
+			renameReg.get(0).dest = robTable.tail;
+			valid = true;
 		}
 		else if(s1){
 			rmtIndex = renameReg.get(0).src1;
@@ -404,12 +426,13 @@ public class sim_ds {
 				}
 			}
 		}
-		if(rmtIndex != -1 && valid){
+		if((rmtIndex != -1 && valid) || dst){
 			robTable.rob[robTable.tail].instrNum = renameReg.get(0).instNum;
 			robTable.rob[robTable.tail].dst = rmtIndex;
-			rmt[rmtIndex].valid = 1;
-			rmt[rmtIndex].ROBtag = robTable.tail;
-			
+			if(rmtIndex != -1){
+				rmt[rmtIndex].valid = 1;
+				rmt[rmtIndex].ROBtag = robTable.tail;
+			}
 			robTable.IncrementTail();
 		}
 		
