@@ -54,18 +54,24 @@ public class sim_ds {
 			rmt[i] = new RenameMapTab();
 		}
 		myIQ = new IssueQueue[iq_size];
+		for(int i=0; i<iq_size; i++){
+			myIQ[i] = new IssueQueue();
+		}
 		
 		FileReader fileReader = new FileReader(tracefile);
 		br = new BufferedReader(fileReader);
 		while(true) {
-            //Retire(myROB);
+            Retire();
+            WriteBack();
+            Execute();
+            Issue();
 			Dispatch();
 			RegRead();
 			Rename();
             Decode();
             Fetch();
-            if(done) break;
-            sequence++;
+            if(CheckIfDone() && traceDone) break;
+             sequence++;
 		}
 		
 		br.close();
@@ -77,13 +83,13 @@ public class sim_ds {
 	
 	public void Retire(){
 		for(int i=0; i<theWidth; i++){
-			if(retireReg.size() < theWidth){
+			if(!retireReg.isEmpty()){
 				if(robTable.rob[robTable.head].rdy == 1){
 					int instNum = robTable.rob[robTable.head].instrNum;
+					// print instruction
+					PrintInst(retireReg.get(instNum));
 					retireReg.remove(instNum);
 					robTable.IncrementHead();
-					//TODO: print instruction
-					
 				}
 			}
 		}
@@ -147,17 +153,29 @@ public class sim_ds {
 					//process src1
 					boolean src1ready = false;
 					int rmtIdx = regReadReg.get(0).src1;
-					int robIdx = rmt[rmtIdx].ROBtag;
-					if(robTable.rob[robIdx].rdy == 1){
-						src1ready = true;
+					if(rmtIdx > 0){
+						if(rmt[rmtIdx].valid == 1){
+							int robIdx = rmt[rmtIdx].ROBtag;
+							if(robTable.rob[robIdx].rdy == 1){
+								src1ready = true;
+							}
+						}
+						else src1ready = true;
 					}
+					else src1ready = true;
 					//process src1
 					boolean src2ready = false;
 					rmtIdx = regReadReg.get(0).src2;
-					robIdx = rmt[rmtIdx].ROBtag;
-					if(robTable.rob[robIdx].rdy == 1){
-						src2ready = true;
-					}
+					if(rmtIdx > 0){
+						if(rmt[rmtIdx].valid == 1){
+							int robIdx = rmt[rmtIdx].ROBtag;
+							if(robTable.rob[robIdx].rdy == 1){
+								src2ready = true;
+							}
+						}
+
+						else src2ready = true;					}
+					else src2ready = true;
 					
 					//advance
 					dispatchReg.add(regReadReg.get(0).ChangeStage(Pipeline.DISPATCH, sequence, src1ready, src2ready));
@@ -171,7 +189,7 @@ public class sim_ds {
 		if(!dispatchReg.isEmpty()){
 			int loopsize = iq_size - issueReg.size();
 			for(int i=0; i<loopsize; i++){
-				if((iq_size - issueReg.size()) >= dispatchReg.size()){
+				if((iq_size - issueReg.size()) >= dispatchReg.size() && !dispatchReg.isEmpty()){
 					AddToIssueQueue();
 					issueReg.add(dispatchReg.get(0).ChangeStage(Pipeline.ISSUE, sequence));
 					dispatchReg.remove(0);
@@ -206,19 +224,22 @@ public class sim_ds {
 	}
 	
 	public void Execute(){
-		for(int i=0; i<executeReg.size(); i++){
-			if(executeReg.get(i).timer == 0){
-				//finished
-				//wakeup dependent instructions
-				WakeUp(executeReg.get(i).dest);
-				//advnace to wb
-				writebackReg.add(executeReg.get(i).ChangeStage(Pipeline.WRITEBACK, sequence));
-				//remove from executeReg
-				executeReg.remove(i);
-			}
-			else{
-				//decrement timer
-				executeReg.get(i).timer--;
+		if(!executeReg.isEmpty()){
+			for(int i=0; i<theWidth*5; i++){
+				if(i >= executeReg.size()) break;
+				if(executeReg.get(i).timer == 0){
+					//finished
+					//wakeup dependent instructions
+					WakeUp(executeReg.get(i).dest);
+					//advnace to wb
+					writebackReg.add(executeReg.get(i).ChangeStage(Pipeline.WRITEBACK, sequence));
+					//remove from executeReg
+					executeReg.remove(i);
+				}
+				else{
+					//decrement timer
+					executeReg.get(i).timer--;
+				}
 			}
 		}
 	}
@@ -227,12 +248,53 @@ public class sim_ds {
 		for(int i=0; i<theWidth*5; i++){
 			if(!writebackReg.isEmpty()){
 				int robIdx = writebackReg.get(0).dest;
-				robTable.rob[robIdx].rdy = 1;
+				if(robIdx > 0){
+					WakeUp(robIdx);
+					robTable.rob[robIdx].rdy = 1;
+				}
 				
 				retireReg.add(writebackReg.get(0).ChangeStage(Pipeline.RETIRE, sequence));
 				writebackReg.remove(0);
 			}
 		}
+	}
+	
+	public boolean CheckIfDone(){
+		int doneCount = 0;
+		if(decodeReg.isEmpty()) doneCount++;
+		if(renameReg.isEmpty()) doneCount++;
+		if(regReadReg.isEmpty()) doneCount++;
+		if(dispatchReg.isEmpty()) doneCount++;
+		if(issueReg.isEmpty()) doneCount++;
+		if(executeReg.isEmpty()) doneCount++;
+		if(writebackReg.isEmpty()) doneCount++;
+		if(retireReg.isEmpty()) doneCount++;
+		
+		System.out.print("DE: "+decodeReg.size());		
+		System.out.print(" RE: "+renameReg.size());	
+		System.out.print(" RR: "+regReadReg.size());	
+		System.out.print(" DI: "+dispatchReg.size());	
+		System.out.print(" IS: "+issueReg.size());	
+		System.out.print(" EX: "+executeReg.size());	
+		System.out.print(" WB: "+writebackReg.size());	
+		System.out.println(" RT: "+retireReg.size());
+		
+		if(doneCount == 8) return true;
+		else return false;
+	}
+	
+	public void PrintInst(Instruction i){
+		System.out.print(i.instNum + " fu{" + i.opType + "} ");
+		System.out.print("src{" + i.src1 +"," + i.src2 +"} dest{" + i.dest + "} ");
+		System.out.print("FE{"+ i.begin[Pipeline.FETCH] + "," + (i.begin[Pipeline.FETCH+1] - i.begin[Pipeline.FETCH]) + "} ");
+		System.out.print("DE{"+ i.begin[Pipeline.DECODE] + "," + (i.begin[Pipeline.DECODE+1] - i.begin[Pipeline.DECODE]) + "} ");
+		System.out.print("RN{"+ i.begin[Pipeline.RENAME] + "," + (i.begin[Pipeline.RENAME+1] - i.begin[Pipeline.RENAME]) + "} ");
+		System.out.print("RR{"+ i.begin[Pipeline.REGREAD] + "," + (i.begin[Pipeline.REGREAD+1] - i.begin[Pipeline.REGREAD]) + "} ");
+		System.out.print("DI{"+ i.begin[Pipeline.DISPATCH] + "," + (i.begin[Pipeline.DISPATCH+1] - i.begin[Pipeline.DISPATCH]) + "} ");
+		System.out.print("IS{"+ i.begin[Pipeline.ISSUE] + "," + (i.begin[Pipeline.ISSUE+1] - i.begin[Pipeline.ISSUE]) + "} ");
+		System.out.print("EX{"+ i.begin[Pipeline.EXECUTE] + "," + (i.begin[Pipeline.EXECUTE+1] - i.begin[Pipeline.EXECUTE]) + "} ");
+		System.out.print("WB{"+ i.begin[Pipeline.WRITEBACK] + "," + (i.begin[Pipeline.WRITEBACK+1] - i.begin[Pipeline.WRITEBACK]) + "} ");
+		System.out.println("RT{"+ i.begin[Pipeline.RETIRE] + "," + (sequence - i.begin[Pipeline.RETIRE]) + "} ");
 	}
 	
 	public void WakeUp(int robIdx){
@@ -317,6 +379,7 @@ public class sim_ds {
 	public int RenameThisReg(boolean dst, boolean s1, boolean s2){
 		int robIndex = -1;
 		int rmtIndex = -1;
+		boolean valid = false;
 		if(dst){
 			rmtIndex = renameReg.get(0).dest;
 			if(rmtIndex != -1){
@@ -326,16 +389,22 @@ public class sim_ds {
 		else if(s1){
 			rmtIndex = renameReg.get(0).src1;
 			if(rmtIndex != -1){
-				renameReg.get(0).src1 = robTable.tail;
+				if(rmt[rmtIndex].valid == 1){
+					valid = true;
+					renameReg.get(0).src1 = robTable.tail;
+				}
 			}
 		}
 		else if(s2){
 			rmtIndex = renameReg.get(0).src2;
 			if(rmtIndex != -1){
-				renameReg.get(0).src2 = robTable.tail;
+				if(rmt[rmtIndex].valid == 1){
+					valid = true;
+					renameReg.get(0).src2 = robTable.tail;
+				}
 			}
 		}
-		if(rmtIndex != -1){
+		if(rmtIndex != -1 && valid){
 			robTable.rob[robTable.tail].instrNum = renameReg.get(0).instNum;
 			robTable.rob[robTable.tail].dst = rmtIndex;
 			rmt[rmtIndex].valid = 1;
@@ -392,6 +461,6 @@ public class sim_ds {
 		regSrc1 = Integer.parseInt(temp[3]);
 		regSrc2 = Integer.parseInt(temp[4]);
 		
-		System.out.println("pc: " + thePC);
+//		System.out.println("pc: " + thePC);
 	}
 }
