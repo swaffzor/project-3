@@ -160,6 +160,11 @@ public class sim_ds {
 								src1ready = true;
 							}
 						}
+						else{
+							src1ready = true;
+						}
+					}
+					if(regReadReg.get(0).src1rdy){
 						src1ready = true;
 					}
 					
@@ -172,7 +177,12 @@ public class sim_ds {
 								src2ready = true;
 							}
 						}
-						src2ready = true;
+						else{
+							src2ready = true;
+						}
+						if(regReadReg.get(0).src2rdy){
+							src2ready = true;
+						}
 					}
 					
 					//advance
@@ -270,7 +280,7 @@ public class sim_ds {
 		if(retireReg.isEmpty()) doneCount++;
 		
 //		System.out.print("DE: "+decodeReg.size());		
-//		System.out.print(" RE: "+renameReg.size());	
+//		System.out.print(" RN: "+renameReg.size());	
 //		System.out.print(" RR: "+regReadReg.size());	
 //		System.out.print(" DI: "+dispatchReg.size());	
 //		System.out.print(" IS: "+issueReg.size());	
@@ -318,27 +328,39 @@ public class sim_ds {
 		}
 //		if(!iqOnly){
 			for(int i=0; i<issueReg.size(); i++){
-				if(issueReg.get(i).src1 == robIdx){
-					issueReg.get(i).src1rdy = true;
+				if(issueReg.get(i).src1Rob){
+					if(issueReg.get(i).src1 == robIdx){
+						issueReg.get(i).src1rdy = true;
+					}
 				}
-				if(issueReg.get(i).src2 == robIdx){
-					issueReg.get(i).src2rdy = true;
+				if(issueReg.get(i).src2Rob){
+					if(issueReg.get(i).src2 == robIdx){
+						issueReg.get(i).src2rdy = true;
+					}
 				}
 			}
 			for(int i=0; i<dispatchReg.size(); i++){
-				if(dispatchReg.get(i).src1 == robIdx){
-					dispatchReg.get(i).src1rdy = true;
+				if(dispatchReg.get(i).src1Rob){
+					if(dispatchReg.get(i).src1 == robIdx){
+						dispatchReg.get(i).src1rdy = true;
+					}
 				}
-				if(dispatchReg.get(i).src2 == robIdx){
-					dispatchReg.get(i).src2rdy = true;
+				if(dispatchReg.get(i).src2Rob){
+					if(dispatchReg.get(i).src2 == robIdx){
+						dispatchReg.get(i).src2rdy = true;
+					}
 				}
 			}
 			for(int i=0; i<regReadReg.size(); i++){
-				if(regReadReg.get(i).src1 == robIdx){
-					regReadReg.get(i).src1rdy = true;
+				if(regReadReg.get(i).src1Rob){
+					if(regReadReg.get(i).src1 == robIdx){
+						regReadReg.get(i).src1rdy = true;
+					}
 				}
-				if(regReadReg.get(i).src2 == robIdx){
-					regReadReg.get(i).src2rdy = true;
+				if(regReadReg.get(i).src2Rob){
+					if(regReadReg.get(i).src2 == robIdx){
+						regReadReg.get(i).src2rdy = true;
+					}
 				}
 			}
 //		}
