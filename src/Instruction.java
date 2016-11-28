@@ -6,6 +6,8 @@ public class Instruction {
 	public int dest;
 	public int src1;
 	public int src2;
+	public int s1OG;
+	public int s2OG;
 	public boolean src1rdy;
 	public boolean src2rdy;
 	public boolean src1Rob;
@@ -20,8 +22,8 @@ public class Instruction {
 		this.instNum = instnum;
 		this.opType = optype;
 		this.dest = d;
-		this.src1 = s1;
-		this.src2 = s2;
+		this.src1 = s1OG = s1;
+		this.src2 = s2OG = s2;
 		this.stage = stage;
 		begin[stage] = cycle;
 		src1rdy = false;

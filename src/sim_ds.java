@@ -284,7 +284,7 @@ public class sim_ds {
 	
 	public void PrintInst(Instruction i){
 		System.out.print(i.instNum + " fu{" + i.opType + "} ");
-		System.out.print("src{" + i.src1 +"," + i.src2 +"} dst{" + i.dest + "} ");
+		System.out.print("src{" + i.s1OG +"," + i.s2OG +"} dst{" + i.dest + "} ");
 		System.out.print("FE{"+ i.begin[Pipeline.FETCH] + "," + (i.begin[Pipeline.FETCH+1] - i.begin[Pipeline.FETCH]) + "} ");
 		System.out.print("DE{"+ i.begin[Pipeline.DECODE] + "," + (i.begin[Pipeline.DECODE+1] - i.begin[Pipeline.DECODE]) + "} ");
 		System.out.print("RN{"+ i.begin[Pipeline.RENAME] + "," + (i.begin[Pipeline.RENAME+1] - i.begin[Pipeline.RENAME]) + "} ");
