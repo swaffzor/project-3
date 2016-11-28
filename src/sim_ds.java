@@ -135,12 +135,10 @@ public class sim_ds {
 					int robEntriesNeeded = CalcRenameRobSize(renameReg.get(0));
 					if(robEntriesNeeded < robTable.spaceAvailable){
 						//process
-						RenameThisReg(true, false, false);	//rename dest
-						RenameThisReg(false, true, false);	//rename src1
-						RenameThisReg(false, false, true);	//rename src2
+						RenameThisReg();	
 						
 						//advance to RR
-						regReadReg.add(renameReg.get(0).ChangeStage(Pipeline.REGREAD, sequence));
+						regReadReg.add(renameReg.get(0).ChangeStage(Pipeline.REGREAD, sequence+1));
 						renameReg.remove(0);
 					}
 				}
@@ -181,7 +179,7 @@ public class sim_ds {
 					else src2ready = true;
 					
 					//advance
-					dispatchReg.add(regReadReg.get(0).ChangeStage(Pipeline.DISPATCH, sequence, src1ready, src2ready));
+					dispatchReg.add(regReadReg.get(0).ChangeStage(Pipeline.DISPATCH, sequence+1, src1ready, src2ready));
 					regReadReg.remove(0);
 				}
 			}
@@ -194,7 +192,7 @@ public class sim_ds {
 			for(int i=0; i<loopsize; i++){
 				if((iq_size - issueReg.size()) >= dispatchReg.size() && !dispatchReg.isEmpty()){
 					AddToIssueQueue();
-					issueReg.add(dispatchReg.get(0).ChangeStage(Pipeline.ISSUE, sequence));
+					issueReg.add(dispatchReg.get(0).ChangeStage(Pipeline.ISSUE, sequence+1));
 					dispatchReg.remove(0);
 				}
 			}
@@ -210,15 +208,15 @@ public class sim_ds {
 					if(idx != -1){
 						int latency = -1;
 						if(issueReg.get(idx).opType == 0){
-							latency = 1;
+							latency = 0;
 						}
 						else if(issueReg.get(idx).opType == 1){
-							latency = 2;
+							latency = 1;
 						}
 						else if(issueReg.get(idx).opType == 2){
-							latency = 5;
+							latency = 4;
 						}
-						executeReg.add(issueReg.get(idx).ChangeStage(Pipeline.EXECUTE, sequence, latency));
+						executeReg.add(issueReg.get(idx).ChangeStage(Pipeline.EXECUTE, sequence+1, latency));
 						issueReg.remove(idx);
 					}
 				}
@@ -229,13 +227,13 @@ public class sim_ds {
 	public void Execute(){
 		if(!executeReg.isEmpty()){
 			for(int i=0; i<theWidth*5; i++){
-				if(i >= executeReg.size()) break;
+				if(i >= executeReg.size() || executeReg.isEmpty()) break;
 				if(executeReg.get(i).timer == 0){
 					//finished
 					//wakeup dependent instructions
 					WakeUp(executeReg.get(i).dest);
 					//advnace to wb
-					writebackReg.add(executeReg.get(i).ChangeStage(Pipeline.WRITEBACK, sequence));
+					writebackReg.add(executeReg.get(i).ChangeStage(Pipeline.WRITEBACK, sequence+1));
 					//remove from executeReg
 					executeReg.remove(i);
 				}
@@ -256,7 +254,7 @@ public class sim_ds {
 					robTable.rob[robIdx].rdy = 1;
 				}
 				
-				retireReg.add(writebackReg.get(0).ChangeStage(Pipeline.RETIRE, sequence));
+				retireReg.add(writebackReg.get(0).ChangeStage(Pipeline.RETIRE, sequence+1));
 				writebackReg.remove(0);
 			}
 		}
@@ -297,7 +295,7 @@ public class sim_ds {
 		System.out.print("IS{"+ i.begin[Pipeline.ISSUE] + "," + (i.begin[Pipeline.ISSUE+1] - i.begin[Pipeline.ISSUE]) + "} ");
 		System.out.print("EX{"+ i.begin[Pipeline.EXECUTE] + "," + (i.begin[Pipeline.EXECUTE+1] - i.begin[Pipeline.EXECUTE]) + "} ");
 		System.out.print("WB{"+ i.begin[Pipeline.WRITEBACK] + "," + (i.begin[Pipeline.WRITEBACK+1] - i.begin[Pipeline.WRITEBACK]) + "} ");
-		System.out.println("RT{"+ i.begin[Pipeline.RETIRE] + "," + (sequence - i.begin[Pipeline.RETIRE]) + "} ");
+		System.out.println("RT{"+ i.begin[Pipeline.RETIRE] + "," + (sequence+1 - i.begin[Pipeline.RETIRE]) + "} ");
 	}
 	
 	public int GetDoneIndex(int instrNum){
@@ -381,6 +379,12 @@ public class sim_ds {
 		for(int i=0; i< iq_size; i++){
 			if(myIQ[i].instNum == instNum){
 				myIQ[i].valid = 0;
+				myIQ[i].dstTag = -1;
+				myIQ[i].src1Ready = false;
+				myIQ[i].src1Tag = -1;
+				myIQ[i].src2Ready = false;
+				myIQ[i].src2Tag = -1;
+				myIQ[i].instNum = -1;
 				break;
 			}
 		}
@@ -401,44 +405,34 @@ public class sim_ds {
 		}
 	}
 	
-	public int RenameThisReg(boolean dst, boolean s1, boolean s2){
-		int robIndex = -1;
-		int rmtIndex = -1;
-		boolean valid = false;
-		if(dst){
-			rmtIndex = renameReg.get(0).dest;
-			renameReg.get(0).dest = robTable.tail;
-			valid = true;
+	public void RenameThisReg(){
+		int rmtIndex;
+		rmtIndex = renameReg.get(0).dest;
+		//check rmt for dest register
+		renameReg.get(0).dest = robTable.tail;
+		robTable.rob[robTable.tail].instrNum = renameReg.get(0).instNum;
+		robTable.rob[robTable.tail].dst = rmtIndex;
+		if(rmtIndex != -1){
+			rmt[rmtIndex].valid = 1;
+			rmt[rmtIndex].ROBtag = robTable.tail;
 		}
-		else if(s1){
-			rmtIndex = renameReg.get(0).src1;
-			if(rmtIndex != -1){
-				if(rmt[rmtIndex].valid == 1){
-					valid = true;
-					renameReg.get(0).src1 = robTable.tail;
-				}
+		robTable.IncrementTail();
+		
+		//src1
+		rmtIndex = renameReg.get(0).src1;
+		if(rmtIndex != -1){
+			if(rmt[rmtIndex].valid == 1){
+				renameReg.get(0).src1 = rmt[rmtIndex].ROBtag;
 			}
-		}
-		else if(s2){
-			rmtIndex = renameReg.get(0).src2;
-			if(rmtIndex != -1){
-				if(rmt[rmtIndex].valid == 1){
-					valid = true;
-					renameReg.get(0).src2 = robTable.tail;
-				}
-			}
-		}
-		if((rmtIndex != -1 && valid) || dst){
-			robTable.rob[robTable.tail].instrNum = renameReg.get(0).instNum;
-			robTable.rob[robTable.tail].dst = rmtIndex;
-			if(rmtIndex != -1){
-				rmt[rmtIndex].valid = 1;
-				rmt[rmtIndex].ROBtag = robTable.tail;
-			}
-			robTable.IncrementTail();
 		}
 		
-		return robIndex;
+		//src2
+		rmtIndex = renameReg.get(0).src2;
+		if(rmtIndex != -1){
+			if(rmt[rmtIndex].valid == 1){
+				renameReg.get(0).src2 = rmt[rmtIndex].ROBtag;
+			}
+		}
 	}
 	
 	public int CalcRenameRobSize(Instruction instr){

@@ -10,12 +10,12 @@ public class IssueQueue {
 	int instNum;
 	
 	public IssueQueue() {
-		valid = 0;
-		dstTag = 0;
+		valid = -1;
+		dstTag = -1;
 		src1Ready = false;
 		src2Ready = false;
-		src1Tag = 0;
-		src2Tag = 0;
-		instNum = 0;
+		src1Tag = -1;
+		src2Tag = -1;
+		instNum = -1;
 	}
 }
