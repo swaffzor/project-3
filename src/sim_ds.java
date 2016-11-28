@@ -45,7 +45,6 @@ public class sim_ds {
 	
 	public sim_ds(String[] args) throws IOException {
 		boolean done = false;
-		System.out.println("hello worlds");
 		GetParameters(args);
 		
 		robTable = new ReOrderBuffer(rob_size);
@@ -154,16 +153,17 @@ public class sim_ds {
 					//process src1
 					boolean src1ready = false;
 					int rmtIdx = regReadReg.get(0).src1;
-					if(!regReadReg.get(0).src1Rob){
-						if(rmtIdx != -1){
-							if(rmt[rmtIdx].valid == 0){
+					if(rmtIdx != -1){
+						if(rmt[rmtIdx].valid == 1){
+							int robIdx = rmt[rmtIdx].ROBtag;
+							if(robTable.rob[robIdx].rdy == 1){
 								src1ready = true;
 							}
 						}
-						else{
-							src1ready = true;
-						}
+						else src1ready = true;
 					}
+					else src1ready = true;
+					
 					if(regReadReg.get(0).src1rdy){
 						src1ready = true;
 					}
@@ -171,18 +171,19 @@ public class sim_ds {
 					//process src2
 					boolean src2ready = false;
 					rmtIdx = regReadReg.get(0).src2;
-					if(!regReadReg.get(0).src2Rob){
-						if(rmtIdx != -1){
-							if(rmt[rmtIdx].valid == 0){
+					if(rmtIdx != -1){
+						if(rmt[rmtIdx].valid == 1){
+							int robIdx = rmt[rmtIdx].ROBtag;
+							if(robTable.rob[robIdx].rdy == 1){
 								src2ready = true;
 							}
 						}
-						else{
-							src2ready = true;
-						}
-						if(regReadReg.get(0).src2rdy){
-							src2ready = true;
-						}
+						else src2ready = true;
+					}
+					else src2ready = true;
+					
+					if(regReadReg.get(0).src2rdy){
+						src2ready = true;
 					}
 					
 					//advance
@@ -258,7 +259,7 @@ public class sim_ds {
 			if(!writebackReg.isEmpty()){
 				int robIdx = writebackReg.get(0).dest;
 				if(robIdx > -1){
-					WakeUp(robIdx, false);
+//					WakeUp(robIdx, false);
 					robTable.rob[robIdx].rdy = 1;
 				}
 				
