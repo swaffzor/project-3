@@ -8,6 +8,8 @@ public class Instruction {
 	public int src2;
 	public boolean src1rdy;
 	public boolean src2rdy;
+	public boolean src1Rob;
+	public boolean src2Rob;
 	public int stage;
 	public int instNum;
 	public int begin[] = new int[9];
@@ -24,6 +26,8 @@ public class Instruction {
 		begin[stage] = cycle;
 		src1rdy = false;
 		src2rdy = false;
+		src1Rob = false;
+		src2Rob = false;
 	}
 	
 	public Instruction ChangeStage(int destStage, int sequence){

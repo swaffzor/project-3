@@ -71,7 +71,7 @@ public class sim_ds {
             Decode();
             Fetch();
             if(CheckIfDone() && traceDone) break;
-             sequence++;
+            sequence++;
 		}
 		
 		br.close();
@@ -154,29 +154,26 @@ public class sim_ds {
 					//process src1
 					boolean src1ready = false;
 					int rmtIdx = regReadReg.get(0).src1;
-					if(rmtIdx > 0){
-						if(rmt[rmtIdx].valid == 1){
-							int robIdx = rmt[rmtIdx].ROBtag;
-							if(robTable.rob[robIdx].rdy == 1){
+					if(!regReadReg.get(0).src1Rob){
+						if(rmtIdx != -1){
+							if(rmt[rmtIdx].valid == 0){
 								src1ready = true;
 							}
 						}
-						else src1ready = true;
+						src1ready = true;
 					}
-					else src1ready = true;
-					//process src1
+					
+					//process src2
 					boolean src2ready = false;
 					rmtIdx = regReadReg.get(0).src2;
-					if(rmtIdx > 0){
-						if(rmt[rmtIdx].valid == 1){
-							int robIdx = rmt[rmtIdx].ROBtag;
-							if(robTable.rob[robIdx].rdy == 1){
+					if(!regReadReg.get(0).src2Rob){
+						if(rmtIdx != -1){
+							if(rmt[rmtIdx].valid == 0){
 								src2ready = true;
 							}
 						}
-
-						else src2ready = true;					}
-					else src2ready = true;
+						src2ready = true;
+					}
 					
 					//advance
 					dispatchReg.add(regReadReg.get(0).ChangeStage(Pipeline.DISPATCH, sequence+1, src1ready, src2ready));
@@ -231,11 +228,12 @@ public class sim_ds {
 				if(executeReg.get(i).timer == 0){
 					//finished
 					//wakeup dependent instructions
-					WakeUp(executeReg.get(i).dest);
+					WakeUp(executeReg.get(i).dest, true);
 					//advnace to wb
 					writebackReg.add(executeReg.get(i).ChangeStage(Pipeline.WRITEBACK, sequence+1));
 					//remove from executeReg
 					executeReg.remove(i);
+					i = i - 1;
 				}
 				else{
 					//decrement timer
@@ -250,7 +248,7 @@ public class sim_ds {
 			if(!writebackReg.isEmpty()){
 				int robIdx = writebackReg.get(0).dest;
 				if(robIdx > -1){
-					WakeUp(robIdx);
+					WakeUp(robIdx, false);
 					robTable.rob[robIdx].rdy = 1;
 				}
 				
@@ -309,7 +307,7 @@ public class sim_ds {
 		return idx;
 	}
 	
-	public void WakeUp(int robIdx){
+	public void WakeUp(int robIdx, boolean iqOnly){
 		for(int i=0; i<iq_size; i++){
 			if(myIQ[i].src1Tag == robIdx){
 				myIQ[i].src1Ready = true;
@@ -318,30 +316,32 @@ public class sim_ds {
 				myIQ[i].src2Ready = true;
 			}
 		}
-		for(int i=0; i<issueReg.size(); i++){
-			if(issueReg.get(i).src1 == robIdx){
-				issueReg.get(i).src1rdy = true;
+//		if(!iqOnly){
+			for(int i=0; i<issueReg.size(); i++){
+				if(issueReg.get(i).src1 == robIdx){
+					issueReg.get(i).src1rdy = true;
+				}
+				if(issueReg.get(i).src2 == robIdx){
+					issueReg.get(i).src2rdy = true;
+				}
 			}
-			if(issueReg.get(i).src2 == robIdx){
-				issueReg.get(i).src2rdy = true;
+			for(int i=0; i<dispatchReg.size(); i++){
+				if(dispatchReg.get(i).src1 == robIdx){
+					dispatchReg.get(i).src1rdy = true;
+				}
+				if(dispatchReg.get(i).src2 == robIdx){
+					dispatchReg.get(i).src2rdy = true;
+				}
 			}
-		}
-		for(int i=0; i<dispatchReg.size(); i++){
-			if(dispatchReg.get(i).src1 == robIdx){
-				dispatchReg.get(i).src1rdy = true;
+			for(int i=0; i<regReadReg.size(); i++){
+				if(regReadReg.get(i).src1 == robIdx){
+					regReadReg.get(i).src1rdy = true;
+				}
+				if(regReadReg.get(i).src2 == robIdx){
+					regReadReg.get(i).src2rdy = true;
+				}
 			}
-			if(dispatchReg.get(i).src2 == robIdx){
-				dispatchReg.get(i).src2rdy = true;
-			}
-		}
-		for(int i=0; i<regReadReg.size(); i++){
-			if(regReadReg.get(i).src1 == robIdx){
-				regReadReg.get(i).src1rdy = true;
-			}
-			if(regReadReg.get(i).src2 == robIdx){
-				regReadReg.get(i).src2rdy = true;
-			}
-		}
+//		}
 	}
 	
 	public int CheckIQ(){
@@ -407,6 +407,33 @@ public class sim_ds {
 	
 	public void RenameThisReg(){
 		int rmtIndex;
+		
+		//src1
+		rmtIndex = renameReg.get(0).src1;
+		if(rmtIndex != -1){
+			if(rmt[rmtIndex].valid == 1){
+				renameReg.get(0).src1 = rmt[rmtIndex].ROBtag;
+				renameReg.get(0).src1Rob = true;
+			}
+			else{
+				renameReg.get(0).src1rdy = true;
+				renameReg.get(0).src1Rob = false;
+			}
+		}
+		
+		//src2
+		rmtIndex = renameReg.get(0).src2;
+		if(rmtIndex != -1){
+			if(rmt[rmtIndex].valid == 1){
+				renameReg.get(0).src2 = rmt[rmtIndex].ROBtag;
+				renameReg.get(0).src2Rob = true;
+			}
+			else{
+				renameReg.get(0).src2rdy = true;
+				renameReg.get(0).src2Rob = false;
+			}
+		}
+
 		rmtIndex = renameReg.get(0).dest;
 		//check rmt for dest register
 		renameReg.get(0).dest = robTable.tail;
@@ -417,22 +444,6 @@ public class sim_ds {
 			rmt[rmtIndex].ROBtag = robTable.tail;
 		}
 		robTable.IncrementTail();
-		
-		//src1
-		rmtIndex = renameReg.get(0).src1;
-		if(rmtIndex != -1){
-			if(rmt[rmtIndex].valid == 1){
-				renameReg.get(0).src1 = rmt[rmtIndex].ROBtag;
-			}
-		}
-		
-		//src2
-		rmtIndex = renameReg.get(0).src2;
-		if(rmtIndex != -1){
-			if(rmt[rmtIndex].valid == 1){
-				renameReg.get(0).src2 = rmt[rmtIndex].ROBtag;
-			}
-		}
 	}
 	
 	public int CalcRenameRobSize(Instruction instr){
