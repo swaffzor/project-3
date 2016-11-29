@@ -154,13 +154,20 @@ public class sim_ds {
 					boolean src1ready = false;
 					int rmtIdx = regReadReg.get(0).src1;
 					if(rmtIdx != -1){
-						if(rmt[rmtIdx].valid == 1){
-							int robIdx = rmt[rmtIdx].ROBtag;
-							if(robTable.rob[robIdx].rdy == 1){
+						if(regReadReg.get(0).src1Rob){
+							if(robTable.rob[rmtIdx].rdy == 1){
 								src1ready = true;
 							}
 						}
-						else src1ready = true;
+						else{
+							if(rmt[rmtIdx].valid == 1){
+								int robIdx = rmt[rmtIdx].ROBtag;
+								if(robTable.rob[robIdx].rdy == 1){
+									src1ready = true;
+								}
+							}
+							else src1ready = true;
+						}
 					}
 					else src1ready = true;
 					
@@ -172,13 +179,20 @@ public class sim_ds {
 					boolean src2ready = false;
 					rmtIdx = regReadReg.get(0).src2;
 					if(rmtIdx != -1){
-						if(rmt[rmtIdx].valid == 1){
-							int robIdx = rmt[rmtIdx].ROBtag;
-							if(robTable.rob[robIdx].rdy == 1){
+						if(regReadReg.get(0).src2Rob){
+							if(robTable.rob[rmtIdx].rdy == 1){
 								src2ready = true;
 							}
 						}
-						else src2ready = true;
+						else{
+							if(rmt[rmtIdx].valid == 1){
+								int robIdx = rmt[rmtIdx].ROBtag;
+								if(robTable.rob[robIdx].rdy == 1){
+									src2ready = true;
+								}
+							}
+							else src2ready = true;
+						}
 					}
 					else src2ready = true;
 					
