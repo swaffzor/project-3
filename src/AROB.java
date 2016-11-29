@@ -9,12 +9,12 @@ public class AROB {
 	int instrNum;
 	
 	public AROB() {
-		value = 0;
-		dst = 0;
-		rdy = 0;
-		exc = 0;
-		mis = 0;
-		instrNum  = 0;
+		value = -1;
+		dst = -1;
+		rdy = -1;
+		exc = -1;
+		mis = -1;
+		instrNum  = -1;
 	}
 	
 	public void setValue(int val){

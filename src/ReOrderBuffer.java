@@ -55,4 +55,14 @@ public class ReOrderBuffer {
 			spaceAvailable--;
 		}
 	}
+	
+	//only to be called when retiring instruction
+	public void ClearRobEntry(){
+		rob[head].value = -1;
+		rob[head].dst = -1;
+		rob[head].rdy = -1;
+		rob[head].exc = -1;
+		rob[head].mis = -1;
+		rob[head].instrNum  = -1;
+	}
 }

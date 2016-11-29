@@ -90,6 +90,13 @@ public class sim_ds {
 					int rIdx = GetDoneIndex(instNum);
 					retireReg.get(rIdx).dest = tag;
 					PrintInst(retireReg.get(rIdx));
+					
+					if(tag != -1){
+						if(robTable.head == rmt[tag].ROBtag){
+							rmt[tag].valid = 0;
+							robTable.ClearRobEntry();
+						}
+					}
 					retireReg.remove(rIdx);
 					robTable.IncrementHead();
 				}
